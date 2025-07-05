@@ -1,0 +1,2074 @@
+openapi: 3.0.4
+info: 
+  title: 'Audiofree: API'
+  description: |-
+    Документация к AudioFree. Список документаций по проектам:
+      - [AudioFree](/?project=audiofree)
+  version: 1.0.0
+  contact: 
+    url: ""
+servers:
+  - url: https://localhost:3002
+  - url: https://audiofree.kotbarsik96.ru/api
+tags:
+  - name: user
+    description: Действия с пользователями
+  - name: catalog
+    description: 'Действия с каталогом: товары, доступные виды сортировки товаров, пользовательские отзывы'
+  - name: product_rating
+    description: 'Рейтинг товаров'
+  - name: product_cart
+    description: 'Корзина товаров текущего пользователя'
+  - name: product_favorites
+    description: 'Избранное товаров текущего пользователя'
+  - name: product_order
+    description: 'Действия по просмотру, оформлению, отмене заказа, просмотр сделанных заказов' 
+  - name: test
+    description: "Тестовые методы, доступные только в режиме разработки"
+paths:
+  /signup:
+    post:
+      tags:
+        - user
+      summary: 'Регистрация нового пользователя (1.1)'
+      description: 'Зарегистрировать нового пользователя'
+      operationId: signup
+      requestBody:
+        description: 'Зарегистрировать нового пользователя'
+        content:
+          application/json:
+            schema: 
+              type: object
+              properties:
+                email: 
+                  type: string
+                  example: 'example@mail.com'
+                name:
+                  type: string
+                  example: 'Анатолий'
+                password:
+                  type: string
+                  example: '12345'
+                password_confirmation:
+                  type: string
+                  example: '12345'
+              required:
+                - email
+                - name
+        required: true
+      responses:
+        '200':
+          description: 'Пользователь зарегистрирован'
+          content:
+            application/json:
+              schema: 
+                oneOf:
+                  - type: object
+                    properties:
+                      ok: 
+                        type: boolean
+                        example: true
+                      message:
+                        type: string
+                        example: 'Вы успешно зарегистрировались. Код авторизации выслан по: Email'
+                  - type: object
+                    properties:
+                      ok: 
+                        type: boolean
+                        example: true
+                      message:
+                        type: string
+                        example: 'Здравствуйте, Анатолий!'
+                      data:
+                        type: object
+                        example:
+                          token: "..."
+        '422':
+          description: 'Ошибка: необрабатываемые данные'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Необходимо ввести логин (Telegram-ник или email-адрес) (and 1 more error)"
+                  errors:
+                    type: object
+                    example:
+                      email: 
+                        - "Необходимо ввести логин (Telegram-ник или email-адрес)"
+                      password:
+                        - "Пароль не совпадает с подтверждением"
+  /login:
+    post:
+      tags:
+        - user
+      summary: 'Вход (1.2)'
+      description: "Логин"
+      operationId: 'login'
+      requestBody:
+        description: 'Логин'
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                login:
+                  type: string
+                  example: 'example@mail.com'
+                password:
+                  type: string
+                  example: '12345'
+                code:
+                  type: string
+                  example: '111111'
+              required:
+                - login
+        required: true
+      responses:
+        '200':
+          description: 'Пользователь вошёл в профиль'
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: object
+                    properties:
+                      ok: 
+                        type: boolean
+                        example: true
+                      message:
+                        type: string
+                        example: "Здравствуйте, Анатолий!"
+                  - type: object
+                    properties:
+                      ok: 
+                        type: boolean
+                        example: true
+                      message:
+                        type: string
+                        example: "Здравствуйте, Анатолий!"
+                      data:
+                        type: object
+                        example:
+                          token: "gfdsmhfgjuyti78yui756457ghdfdghf"
+        '401':
+          description: "Неверные данные"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Неверный логин или пароль"
+        '404':
+          description: 'Пользователь не найден'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Пользователь не найден"
+  /logout:
+    post:
+      tags:
+        - user
+      summary: 'Выход из профиля (1.3)'
+      description: 'Выход из профиля'
+      operationId: 'logout'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Выполнен выход из профиля"
+  /profile/user:
+    get:
+      tags:
+        - user
+      summary: "Получение данных о текущем пользователе (1.4)"
+      description: "Текущий пользователь"
+      operationId: "profile-user"
+      responses:
+        '200':
+          description: "Информация о пользователе"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IUser"
+        '401':
+          description: 'Пользователь не авторизован'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IUnauthenticated'
+  /profile/edit:
+    post:
+      tags:
+        - user
+      summary: "Редактирование профиля текущего авторизованного пользователя (1.5)"
+      description: "Профиль пользователя"
+      operationId: "profile-edit"
+      responses:
+        '200':
+          description: 'Данные обновлены'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Данные обновлены"
+                  data:
+                    type: object
+                    properties:
+                      user:
+                        $ref: '#/components/schemas/IUser'
+        '401':
+          description: "Пользователь не авторизован"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IUnauthenticated'
+  /profile/reset-password/request:
+    post:
+      tags:
+        - user
+      summary: "Запрос сброса пароля (1.6.1)"
+      description: "Сброс пароля"
+      operationId: 'reset-password'
+      responses:
+        '200':
+          description: "Код выслан"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Код выслан: Email"
+        '403':
+          description: "Код уже был выслан"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: 
+                    type: string
+                    example: "Код уже был выслан: Email"
+  /profile/reset-password/verify-link:
+    post:
+      tags:
+        - user
+      summary: "Проверка кода сброса пароля (1.6.2)"
+      description: "Проверка кода сброса пароля"
+      operationId: 'reset-password-verify-link'
+      responses:
+        '200':
+          description: "Проверка прошла"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+        '401':
+          description: "Код недействителен"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: 
+                    type: string
+                    example: "Недействительный код"
+        '404':
+          description: "Пользователь не найден"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: 
+                    type: string
+                    example: "Пользователь не найден"
+  /profile/reset-password/new-password:
+    post:
+      tags:
+        - user
+      summary: "Изменение пароля через сброс (1.6.3)"
+      operationId: 'reset-password-new'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - login
+              properties:
+                login:
+                  type: string
+                  example: "example@mail.com"
+                code:
+                  type: string
+                password:
+                  type: string
+                password_confirmation:
+                  type: string
+        required: true
+      responses:
+        '200':
+          description: "Пароль изменён"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Пароль успешно изменён"
+        '401':
+          description: "Код недействителен"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: 
+                    type: string
+                    example: "Недействительный код"
+  /profile/verification/request:
+    post:
+      tags:
+        - user
+      summary: "Запрос подтверждения ресурса (1.7.1)"
+      description: "(на данный момен только эл.почта)"
+      operationId: 'verification-request'
+      responses:
+        '200':
+          description: "Выслан код"
+          content: 
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Письмо отправлено на указанный адрес email"
+        '400':
+          description: "Ресурс уже подтверждён"
+          content: 
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Запрошеный ресурс уже подтвержден"
+  /profile/verification/confirm:
+    post:
+      tags:
+        - user
+      summary: "Подтверждение ресурса (1.7.2)"
+      description: "(на данный момен только эл.почта)"
+      operationId: 'verification-confirm'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: 
+                - code
+              properties:
+                code:
+                  type: string
+      responses:
+        '200':
+          description: "Выслан код"
+          content: 
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Почта подтверждена"
+        '401':
+          description: "Недействительная ссылка/код"
+          content: 
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Недействительная ссылка"
+  /profile/change-email:
+    post:
+      tags:
+        - user
+      summary: "Изменение адреса эл.почты (1.8)"
+      description: "Изменение адреса эл.почты"
+      operationId: 'change-email'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: 
+                - email
+              properties:
+                email: 
+                  type: string
+                  example: "example@mail.com"
+      responses:
+        '200':
+          description: "Email адрес изменён"
+          content: 
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Email адрес изменён"
+  /profile/change-password:
+    post:
+      tags:
+        - user
+      summary: "Изменение пароля (1.9)"
+      description: "Изменение пароля"
+      operationId: 'change-password'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: 
+                - email
+              properties:
+                current_password: 
+                  type: string
+                password: 
+                  type: string
+                password_confirmation: 
+                  type: string
+      responses:
+        '200':
+          description: "Пароль успешно изменён"
+          content: 
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Пароль успешно изменён"
+  /profile/products/collections:
+    get:
+      tags:
+        - user
+      summary: "Коллекции, связанные с товарами (1.10)"
+      description: "Корзина, избранное текущего авторизованного пользователя"
+      operationId: 'products-collections'
+      responses:
+        '200':
+          description: "Показать коллекции"
+          content: 
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: "#/components/schemas/IProductCollections"
+  /profile/request-login:
+    post:
+      tags:
+        - user
+      summary: "Запрос на вход (1.11)"
+      description: "Используется при указании логина в модальном окне. Нужен для того, чтобы определить, нужно ли пользователю ввести пароль или ему будет выслан код, по которому он сможет войти"
+      operationId: "request-login"
+      responses:
+        '200':
+          description: "Пользователь существует"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: 
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    enum:
+                      - 'Код выслан на: Email'
+                      - 'Введите пароль'
+                  data:
+                    type: object
+                    properties:
+                      has_code:
+                        type: boolean
+                        example: true
+                      has_password:
+                        type: boolean
+                        example: false
+        '404':
+          description: "Пользователь не найден"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Пользователь не найден"
+        '403':
+          description: "Код уже был выслан: Email"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Код уже был выслан: Email"
+  /products/catalog:
+    get:
+      tags:
+        - catalog
+      summary: "Запрос товаров в каталоге (2.1)"
+      description: "Запрос товаров"
+      operationId: "products-catalog"
+      parameters:
+        - in: query
+          name: name
+          schema:
+            type: string
+          description: "Название товара"
+        - in: query
+          name: brand
+          schema:
+            type: array
+            items:
+              type: string
+        - in: query
+          name: category
+          schema:
+            type: array
+            items:
+              type: string
+        - in: query
+          name: type
+          schema:
+            type: array
+            items:
+              type: string
+        - in: query
+          name: status
+          schema:
+            type: array
+            items:
+              type: string
+        - in: query
+          name: has_discount
+          schema:
+            type: boolean
+        - in: query
+          name: per_page
+          schema:
+            type: number
+        - in: query
+          name: price
+          schema:
+            type: string
+            example: '15000,20000'
+      responses:
+        '200':
+          description: "Товары внутри пагинации"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/IPagination"
+                  - type: object
+                    properties:
+                      data: 
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/ICatalogProduct"
+  /product/{product_name}/{product_variation}:
+    get:
+      tags:
+        - catalog
+      summary: "Запрос конкретного товара (2.2)"
+      description: "Запрос конкретного товара"
+      operationId: "product"
+      parameters:
+        - in: path
+          name: product_name
+          schema:
+            type: string
+          required: true
+          description: "Название товара"
+          example: "soundsport-free"
+        - in: path
+          name: product_variation
+          schema:
+            type: string
+          required: true
+          description: "Название вариации товара"
+          example: "purpurniy"
+      responses:
+        '200':
+          description: "Товар"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: "#/components/schemas/IProductData"
+  /products/catalog/filters:
+    get:
+      tags:
+        - catalog
+      summary: "Запрос фильтров товаров в каталоге (2.3)"
+      description: "Также в query передаются параметры, по которым фильтры некоторых позиций меняются"
+      operationId: "products-filters"
+      parameters:
+        - in: query
+          name: brand
+          schema:
+            type: array
+            items:
+              type: string
+          description: "Указан для примера. На практике передаётся вся строка query-параметров из браузера. В query-параметры складываются все значения, применяемые в фильтрах"
+      responses:
+        '200':
+          description: "Список фильтров по товарам"
+          content:
+            application/json:
+              schema:
+                type: array
+                items: 
+                  $ref: "#/components/schemas/IFilterItem"
+  /products/catalog/sorts:
+    get:
+      tags:
+        - catalog
+      summary: "Запрос сортировки товаров в каталоге (2.4)"
+      description: "Запрос сортировки"
+      operationId: "products-sorts"
+      responses:
+        '200':
+          description: "Сортировка товаров"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ISelectOption"
+  /products/{product_id}/reviews:
+    get:
+      tags:
+        - catalog
+      summary: "Запрос отзывов на товар(2.5)"
+      description: "Запрос отзывов на товар"
+      parameters:
+        - in: path
+          name: "product_id"
+          required: true
+          description: "id товара, на который запрашиваются отзывы"
+          schema:
+            type: number
+      operationId: "product-reviews"
+      responses:
+        '200':
+          description: "Отзывы внутри пагинации"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/IPagination"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/IProductReview"
+  /products/{product_id}/user-review:
+    get:
+      tags:
+        - catalog
+      summary: "Запрос отзыва на товар текущего авторизованного пользователя (2.6)"
+      description: "Запрос отзыва от текущего пользователя"
+      operationId: "product-user-review"
+      parameters:
+        - in: path
+          name: "product_id"
+          schema:
+            type: number
+          description: "id товара, на который запрашивается отзыв"  
+          required: true
+      responses:
+        '200':
+          description: "Отзыв текущего пользователя на данный товар"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: 
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: "#/components/schemas/IProductReview"
+        '404':  
+          description: "Текущий пользователь не оставлял отзыв на данный товар"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+  /product/rating:
+    post:
+      tags:
+        - product_rating
+      operationId: "product-rating-set"
+      summary: "Выставление рейтинга товару (3.1)"
+      description: "Выставление рейтинга товару"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: "Отзыв выставлен"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: 
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Оценка 3 выставлена товару Indy Evo"
+        '422':
+          description: "Неверное тело запроса"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Не менее 20 символов (and 1 more error)"
+                  errors:
+                    type: object
+                    properties:
+                      description:
+                        type: array
+                        items: 
+                          type: string
+                        example: 
+                          - 'Не менее 20 символов'
+                      pros:
+                        type: array
+                        items:
+                          type: string
+                        example:
+                          - "Не больше 400 символов" 
+    delete:
+      tags:
+        - product_rating
+      operationId: "product-rating-delete"
+      summary: "Удаление выставленого рейтинга товару (3.2)"
+      description: "Удаление выставленого рейтинга товару"
+      parameters:
+        - in: query
+          name: product_slug
+          schema:
+            type: string
+          required: true
+          example: "air-pulse-a100"
+      responses:
+        '200':
+          description: "Отзыв удалён"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: 
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Оценка удалена"
+  /product/cart:
+    post:
+      tags:
+        - 'product_cart'
+      summary: "Добавить или обновить товар в корзине (4.1)"
+      description: "Добавить или обновить товар в корзине"
+      operationId: "product-cart-add"
+      requestBody:
+        description: "Необходимо указать id вариации и количество товара"
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                variation_id:
+                  type: number
+                  required: true
+                quantity:
+                  type: number
+                  required: true
+      responses:
+        '200':
+          description: "Товар обновлён/добавлен в корзину"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Товар Solo Pro (Зелёный) добавлен в корзину"
+    get:
+      tags:
+        - 'product_cart'
+      summary: "Получить список товаров в корзине (4.2)"
+      description: "Получить список товаров в корзине"
+      operationId: "product-cart-get"
+      parameters:
+        - in: query
+          name: is_oneclick
+          schema:
+            type: boolean
+          required: true
+      responses:
+       '200':
+         description: "Получить список товаров в корзине"
+         content:
+           application/json:
+             schema:
+               $ref: "#/components/schemas/ICartItem"
+  /product/cart/item:
+    delete:
+      tags:
+        - product_cart
+      summary: "Удалить товар из корзины (4.3)"
+      description: "Удалить товар из корзины"
+      operationId: "product-cart-delete"
+      parameters:
+        - in: query
+          schema:
+            type: number
+          name: "variation_id"
+          required: true
+      responses:
+        '200':
+          description: "Товар удалён"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Товар Solo Pro (Зелёный) удален из корзины"
+        '404':
+          description: "Товара нет в корзине"
+          content:
+            application/json:  
+              schema:
+                type: object
+                properties:
+                  message: 
+                    type: string
+                    example: "Товара нет в корзине"
+  /product/favorites:
+    post:
+      tags:
+        - product_favorites
+      summary: "Добавить товар в избранное (5.1)"
+      description: "Добавить товар в избранное"
+      operationId: "product-favorites-add"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                variation_id:
+                  type: number
+                  required: true
+      responses:
+        '200':
+          description: "Товар добавлен в избранное"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                   type: boolean
+                   example: true
+                  message:
+                    type: string
+                    example: "Товар TrueAir2 (Белый) добавлен в избранное"
+    get:
+      tags:
+        - product_favorites
+      summary: "Получить список товаров в избранном (5.2)"
+      description: "Получить список товаров в избранном"
+      operationId: "product-favorites-get"
+      parameters:
+        - in: query
+          name: sort
+          schema:
+            type: string
+            example: price
+        - in: query
+          name: sort_order
+          schema:
+            type: string
+            enum: 
+              - asc
+              - desc
+      responses:
+        '200':
+          description: "Список товаров в избранном получен"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/IPagination"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/IVariationProduct"
+    delete:
+      tags:
+        - product_favorites
+      summary: "Удалить товар из списка избранного (5.3)"
+      description: "Удалить товар из списка избранного"
+      operationId: "product-favorites-delete"
+      parameters:
+        - in: query
+          name: "variation_id"
+          schema:
+            type: number
+          required: true
+      responses:
+        '200':
+          description: "Товар удалён из избранного"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                   type: boolean
+                   example: true
+                  message:
+                    type: string
+                    example: "Товар TrueAir2 (Белый) больше не в избранном"
+  /product/favorites/sorts:
+    get:
+      tags:
+        - product_favorites
+      summary: "Получить доступные сортировки для избранного (5.4)"
+      description: "Получить доступные сортировки для избранного"
+      operationId: "product-favorites-sorts"
+      responses:
+        '200':
+          description: "Опции сортировки"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: 
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ISelectOption"
+  /order/new-attempt:
+    post:
+      tags:
+        - product_order
+      summary: "Попытка оформить заказ (6.1)"
+      description: "Попытка оформить заказ. В случае, если не все товары присутствуют в наличии - выдаётся ошибка, пользователю должен быть показан попап сп предупреждением из message. Если пользователь согласен, делается запрос 6.2"
+      operationId: "product-order-attempt"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IOrdererRequest"
+      responses:
+        '200':
+          description: "Попытка успешна - заказ оформлен"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Заказ №3 создан"
+        '422':
+          description: "Попытка провалена - количество изменилось"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "Внимание! Не все товары из заказа присутствуют в наличии в выбранном количестве: Air Pulse A100 (Чёрный) – не хватает 5; <br />Air Pulse A100 (Голубой) – не хватает 6"
+                  reason:
+                    type: string
+                    example: "failed_quantity"
+  /order/new:
+    post:
+      tags:
+        - product_order
+      summary: "Оформить заказ (6.2)"
+      description: "Вызывается, когда 6.1 выдал ошибку 422, при этом пользователь всё равно согласен продолжить оформление заказа"
+      operationId: "product-order-new"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IOrdererRequest"
+      responses:
+        '200':
+          description: "Заказ оформлен"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Заказ №3 создан"
+  /order/cancel/{order_id}:
+    delete:
+      tags:
+        - product_order
+      summary: "Отменить заказ (6.3)"
+      description: "Отмена сделанного заказа"
+      operationId: "product-order-cancel"
+      parameters:
+        - in: path
+          name: "order_id"
+          schema:
+            type: number
+          required: true
+      responses:
+        '200':
+          description: "Заказ отменён"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Заказ №2 отменён"
+  /order/list:
+    get:
+      tags:
+        - product_order
+      summary: "Список заказов текущего авторизованного пользователя (6.4)"
+      description: "Получить список заказов"
+      operationId: "product-orders-list"
+      parameters:
+        - in: query
+          name: "order_status"
+          schema:
+            $ref: "#/components/schemas/TOrderStatus"
+          description: "Фильтр по статусу заказа"
+        - in: query
+          name: "desired_payment_type"
+          schema:
+            $ref: "#/components/schemas/TPaymentType"
+          description: "Фильтр по виду оплаты заказа"
+        - in: query
+          name: "search"
+          schema:
+            type: string
+            description: "Поиск по OrderProduct::product_name"
+        - in: query
+          name: "per_page"
+          schema:
+            type: number
+            description: "Для пагинации: сколько сущностей на странице"
+        - in: query
+          name: "page"
+          schema:
+            type: number
+          description: "Текущая страница пагинации"
+      responses:
+        '200':
+          description: "Список заказов. Пример актуализировать; возможно в постмане некорректный пример"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+  /order/single/{order_id}:
+    get:
+      tags:
+        - product_order
+      summary: "Получить информацию о конкретном заказе (6.5)"
+      description: "Получить информацию о конкретном заказе"
+      operationId: "product-order-get-single"
+      parameters:
+        - in: path
+          name: "order_id"
+          schema:
+            type: number
+          required: true
+      responses:
+        '200':
+          description: "Информация о заказе"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      order:
+                        $ref: "#/components/schemas/IOrder"
+  /order/creation-data:
+    get:
+      tags:
+        - product_order
+      summary: "Информация о будущем заказе на основе текущей корзины (6.6)"
+      description: "Итоговая стоимость, скидка, варианты оплаты и способы доставки"
+      operationId: "product-order-get-creation-data"
+      responses:
+        '200':
+          description: "Информация о будущем заказе на основе текущей корзины"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: "#/components/schemas/ICreationOrderData"
+        '422':
+           description: "В корзине нет товаров"
+           content:
+             application/json:
+               schema:
+                 type: object
+                 properties:
+                   message:
+                     type: string
+                     example: "В корзине нет товаров"
+  /order/sorts:
+    get:
+      tags:
+        - product_order
+      summary: "Запрос сортировки заказов (6.7)"
+      description: "Запрос сортировки"
+      operationId: "product-order-get-sorts"
+      responses:
+        '200':
+          description: "Сортировка заказов"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ISelectOption"
+                      
+  /test:
+    post:
+      summary: "Тестовый метод. Доступен только в режиме разработки"
+      description: "Только для разработки"
+      operationId: "test"
+      tags:
+        - test
+      responses:
+        '200':
+          description: "Данные могут меняться"
+          content:
+            application/json:
+              schema:
+                type: object
+components:
+  schemas:
+    TDeliveryPlaces:
+      type: string
+      enum:
+        - "pickup_point"
+        - "to_door"
+    TOrderStatus:
+      type: string
+      enum:
+        - preparing
+        - delivering
+        - awaiting_pickup
+        - picked_up
+        - cancelled
+    TPaymentType:
+      type: string
+      enum:
+        - 'cash'
+        - 'card'
+    ProductStatuses:
+      type: string
+      enum:
+        - 'active'
+        - 'inactive'
+    IUserConfirmations:
+      type: object
+      properties:
+        verify_email: 
+          type: boolean
+          example: false
+    IUser:
+      type: object
+      properties:
+        id: 
+          type: number
+          example: 1
+        email:
+          type: string
+        email_verified_at:
+          type: string
+        name: 
+          type: string
+        phone_number: 
+          type: string
+        telegram: 
+          type: string
+        location: 
+          type: string
+        street: 
+          type: string
+        house: 
+          type: string
+        created_at: 
+          type: string
+          format: date-time
+        updated_at: 
+          type: string
+        confirmations:
+          $ref: "#/components/schemas/IUserConfirmations"
+    IReview:
+      type: object
+      properties:
+        id:
+          type: integer
+        user_id:
+          type: integer
+        description:
+          type: string
+          nullable: true
+        pros:
+          type: string
+          nullable: true
+        cons:
+          type: string
+          nullable: true
+        value:
+          type: number
+          format: float
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        user:
+          type: object
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+    IProductTaxonomy:
+      type: object
+      properties:
+        id:
+          type: integer
+        slug:
+          type: string
+        value:
+          type: string
+        value_slug:
+          type: string
+    IProductInfo:
+      type: object
+      properties:
+        id:
+          type: integer
+        product_id:
+          type: integer
+        name:
+          type: string
+        value:
+          type: string
+    IProductVariationMin:
+      type: object
+      properties:
+        id:
+          type: integer
+        product_id:
+          type: integer
+        name:
+          type: string
+        slug:
+          type: string
+    IProductReview:
+      allOf:
+        - $ref: '#/components/schemas/IReview'
+        - type: object
+          properties:
+            product_id:
+              type: integer
+    IProduct:
+      type: object
+      properties:
+        id:
+          type: integer
+        slug:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        image_id:
+          type: integer
+        status_id:
+          type: integer
+        brand_id:
+          type: integer
+        category_id:
+          type: integer
+        type_id:
+          type: integer
+        status:
+          $ref: '#/components/schemas/IProductTaxonomy'
+        brand:
+          $ref: '#/components/schemas/IProductTaxonomy'
+        category:
+          $ref: '#/components/schemas/IProductTaxonomy'
+        type:
+          $ref: '#/components/schemas/IProductTaxonomy'
+        info:
+          type: array
+          items:
+            $ref: '#/components/schemas/IProductInfo'
+        variations:
+          type: array
+          items:
+            $ref: '#/components/schemas/IProductVariationMin'
+        rating_value:
+          type: number
+          format: float
+        rating_count:
+          type: integer
+    IProductVariation:
+      allOf:
+        - $ref: '#/components/schemas/IProductVariationMin'
+        - type: object
+          properties:
+            price:
+              type: number
+              format: float
+            discount:
+              type: number
+              format: float
+            quantity:
+              type: integer
+            current_price:
+              type: number
+              format: float
+            gallery:
+              type: array
+              items:
+                $ref: '#/components/schemas/IImage'
+            image:
+              $ref: '#/components/schemas/IImage'
+    IVariationWithProduct:
+      allOf:
+        - $ref: '#/components/schemas/IProductVariation'
+        - type: object
+          properties:
+            product:
+              type: object
+              properties:
+                id:
+                  type: integer
+                name:
+                  type: string
+                slug:
+                  type: string
+    IProductData:
+      type: object
+      properties:
+        product:
+          $ref: '#/components/schemas/IProduct'
+        variation:
+          $ref: '#/components/schemas/IProductVariation'
+    IFilterItemValue:
+      type: object
+      properties:
+        id:
+          type: integer
+          nullable: true
+        slug:
+          type: string
+          nullable: true
+        value:
+          type: string
+        value_slug:
+          type: string
+    IFilterOption:
+      type: object
+      required:
+        - id
+        - name
+        - slug
+        - type
+        - values
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        slug:
+          type: string
+        type:
+          type: string
+          enum: [checkbox, checkbox_boolean, radio]
+        values:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              slug:
+                type: string
+              value:
+                type: string
+              value_slug:
+                type: string
+    IFilterRangeItem:
+      type: object
+      required:
+        - type
+        - slug
+        - name
+        - min
+        - max
+      properties:
+        type:
+          type: string
+          enum: [range]
+        slug:
+          type: string
+        name:
+          type: string
+        min:
+          type: number
+          format: float
+        max:
+          type: number
+          format: float
+    IFilterInfoItem:
+      type: object
+      required:
+        - type
+        - slug
+        - name
+        - values
+      properties:
+        type:
+          type: string
+          enum: [info]
+        slug:
+          type: string
+        name:
+          type: string
+        values:
+          type: array
+          items:
+            $ref: '#/components/schemas/IFilterInfoItemSubsection'
+    IFilterInfoItemSubsection:
+      type: object
+      properties:
+        name:
+          type: string
+        slug:
+          type: string
+        values:
+          type: array
+          items:
+            type: string
+    ICheckboxBooleanItem:
+      type: object
+      required:
+        - type
+        - slug
+        - name
+        - values
+      properties:
+        type:
+          type: string
+          enum: [checkbox_boolean]
+        slug:
+          type: string
+        name:
+          type: string
+        values:
+          type: array
+          items:
+            type: object
+            properties:
+              value:
+                type: string
+              value_slug:
+                type: string
+    IFilterItem:
+      oneOf:
+        - $ref: '#/components/schemas/IFilterOption'
+        - $ref: '#/components/schemas/IFilterRangeItem'
+        - $ref: '#/components/schemas/IFilterInfoItem'
+        - $ref: '#/components/schemas/ICheckboxBooleanItem'
+    IProductCollectionItem:
+      type: object
+      properties:
+        variation_id:
+          type: number
+        product_id:
+          type: number
+    IProductCartCollectionItem:
+      type: object
+      properties:
+        variation_id:
+          type: number
+        product_id:
+          type: number
+        quantity:
+          type: number
+    IProductCollections:
+      type: object
+      properties:
+        cart:
+          type: array
+          items:
+            $ref: '#/components/schemas/IProductCartCollectionItem'
+        favorites:
+          type: array
+          items:
+            $ref: '#/components/schemas/IProductCollectionItem'
+    IImage: 
+      type: object
+      properties:
+        id:
+          type: number
+        name:
+          type: string
+        extension:
+          type: string
+        sort:
+          type: number
+        path:
+          type: string
+        alt:
+          type: string
+          nullable: true
+        url:
+          type: string
+    ICatalogProduct:
+      type: object
+      properties:
+        id:
+          type: number
+        slug:
+          type: string
+        name:
+          type: string
+        image_id:
+          type: number
+        status_id:
+          type: number
+        min_price:
+          type: number
+        max_price:
+          type: number
+        rating_value:
+          type: number
+        rating_count:
+          type: number
+        image:
+          oneOf:
+            - $ref: '#/components/schemas/IImage'
+            - type: string
+        first_variation:
+          type: object
+          properties:
+            id:
+              type: number
+            product_id:
+              type: number
+            slug:
+              type: string
+        status:
+          type: object
+          properties:
+            id:
+              type: number
+            value:
+              type: string
+            value_slug:
+              $ref: '#/components/schemas/ProductStatuses'
+        brand:
+          type: object
+          properties:
+            id:
+              type: number
+            value:
+              type: string
+            value_slug:
+              type: string
+    IPagination:
+      type: object
+      properties:
+        current_page:
+          type: number
+        data: 
+          type: array
+          items:
+            oneOf:
+              - $ref: '#/components/schemas/ICatalogProduct'
+              - $ref: '#/components/schemas/IProductReview'
+              - $ref: '#/components/schemas/IVariationProduct'
+        first_page_url:
+          type: string
+        from:
+          type: number
+        last_page:
+          type: number
+        last_page_url:
+          type: string
+        links:
+          type: array
+          items:
+            type: object
+            properties:
+              url:
+                type: string
+              label:
+                type: string
+              active:
+                type: boolean
+        next_page_url:
+          type: string
+        path:
+          type: string
+        per_page:
+          type: number
+        prev_page_url:
+          type: number
+        to:
+          type: number
+        total:
+          type: number       
+    IUnauthenticated:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Unauthenticated"
+    ICartItem:
+      type: object
+      properties:
+        id:
+          type: number
+        is_oneclick:
+          type: number
+        quantity:
+          type: number
+        variation_id:
+          type: number
+        variation:
+          $ref: '#/components/schemas/IVariationWithProduct'
+    IFavorite:
+      type: object
+      properties:
+        id:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        product_id:
+          type: integer
+        product_name:
+          type: string
+        variation_id:
+          type: integer
+        image_id:
+          type: integer
+        variation_name:
+          type: string
+        price:
+          type: number
+          format: float
+        discount:
+          type: number
+          format: float
+        quantity:
+          type: integer
+        current_price:
+          type: number
+          format: float
+        full_name:
+          type: string
+        rating_value:
+          type: number
+          format: float
+          nullable: true
+        rating_count:
+          type: integer
+        image:
+          type: string
+    IOrdererData:
+      type: object
+      required:
+        - name
+      properties:
+        name: 
+          type: string
+        email:
+          type: string
+        telegram:
+          type: string
+        phone_number:
+          type: string
+    IOrderProduct:
+      type: object
+      properties:
+        id:
+          type: integer
+        order_id:
+          type: integer
+        product_name:
+          type: string
+        product_quantity:
+          type: integer
+        product_price:
+          type: number
+          format: float
+        product_total_cost:
+          type: number
+          format: float
+        variation:
+          type: object
+          properties:
+            id:
+              type: integer
+            slug:
+              type: string
+            image_id:
+              type: integer
+            image:
+              $ref: '#/components/schemas/IImage'
+            product:
+              type: object
+              properties:
+                id:
+                  type: integer
+                slug:
+                  type: string
+    IOrder:
+      type: object
+      properties:
+        id: 
+          type: number
+        user_id:
+          type: number
+        orderer_data:
+          $ref: "#/components/schemas/IOrdererData"
+        delivery_place:
+          $ref: "#/components/schemas/TDeliveryPlaces"
+        delivery_address:
+          type: string
+        order_status:
+          $ref: "#/components/schemas/TOrderStatus"
+        payment_type:
+          $ref: "#/components/schemas/TPaymentType"
+        is_paid:
+          type: boolean
+        image_id:
+          type: number
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        total_cost:
+          type: number
+        image:
+          type: array
+          items: 
+            $ref: "#/components/schemas/IImage"
+        products:
+          type: array
+          items: 
+            $ref: "#/components/schemas/IOrderProduct"
+    IOrderListItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        orderer_data:
+          $ref: '#/components/schemas/IOrdererData'
+        delivery_place:
+          $ref: '#/components/schemas/TDeliveryPlaces'
+        delivery_address:
+          type: string
+        order_status:
+          $ref: '#/components/schemas/TOrderStatus'
+        desired_payment_type:
+          $ref: '#/components/schemas/TPaymentType'
+        is_paid:
+          type: integer
+        image_id:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        total_cost:
+          type: number
+          format: float
+        image:
+          $ref: '#/components/schemas/IImage'
+        products:
+          type: array
+          items:
+            $ref: '#/components/schemas/IOrderProduct'
+    ISelectOption:
+      type: object
+      properties:
+        value:
+          oneOf:
+            - type: string
+            - type: number
+        label:
+          type: string
+          nullable: true
+        icon:
+          type: string
+          nullable: true
+        iconRotate:
+          type: string
+          nullable: true
+      required:
+        - value
+    IVariationProduct:
+      type: object
+      properties:
+        variation_id:
+          type: number
+        product_id:
+          type: number
+        image:
+          oneOf:
+            - type: string
+            - $ref: "#/components/schemas/IImage"
+        product_name:
+          type: string
+        product_slug:
+          type: string
+        variation_slug:
+          type: string
+        full_name:
+          type: string
+        price:
+          type: number
+        current_price:
+          type: number
+        discount:
+          type: number
+          nullable: true
+        quantity:
+          type: number
+          nullable: true
+        rating_value:
+          type: number
+          nullable: true
+        rating_count:
+          type: number
+        status:
+          $ref: '#/components/schemas/ProductStatuses'
+    IOrdererRequest:
+      type: object
+      properties:
+        orderer_name:
+          type: string
+          example: "Пётр"
+          description: "ФИО заказчика"
+        email:
+          type: string
+          example: "example@mail.com"
+          description: "Эл. почта: обязательная, если не указан ни telegram, ни phone_number"
+        telegram:
+          type: string
+          example: "telegram"
+          description: "Телеграм-ник: обязателен, если не указан ни email, ни phone_number"
+        phone_number:
+          type: string
+          example: ""
+          description: " Номер телефона: обязателен, если не указан ни email, ни telegram"
+        delivery_place:
+          $ref: "#/components/schemas/TDeliveryPlaces"
+        delivery_address:
+          type: string
+          example: "г. Санкт-Петербург, ул. Дубовская, д. 17"
+          description: "Адрес доставки"
+        desired_payment_type:
+          $ref: "#/components/schemas/TPaymentType"
+        is_oneclick:
+          type: boolean
+          example: false
+          description: "Был ли заказ был оформлен через кнопку 'Купить в 1 клик'"
+    ICreationOrderData:
+      type: object
+      properties:
+        variants:
+          type: object
+          properties:
+            delivery_places:
+              type: array
+              items:
+                $ref: '#/components/schemas/TDeliveryPlaces'
+            payment_types:
+              type: array
+              items:
+                $ref: '#/components/schemas/TPaymentType'
+        summary:
+          type: object
+          properties:
+            order_cost:
+              type: number
+            delivery_cost:
+              type: number
+            total_cost:
+              type: number
+          
+    

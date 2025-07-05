@@ -1,0 +1,42 @@
+# Route:
+/login:
+  post:
+    tags:
+      - user
+    summary: ''
+    description: ''
+    operationId: ''
+    requestBody:
+      description: ''
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              prop1:
+                type: string
+                example: ''
+            required:
+              - prop1
+      required: true
+    responses:
+      '200':
+        description: ''
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ok:
+                  type: boolean
+                  example: true
+      '404':
+        description: ''
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                  example: ''
