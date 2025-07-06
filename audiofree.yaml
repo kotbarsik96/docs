@@ -11,21 +11,31 @@ servers:
   - url: https://localhost:3002
   - url: https://audiofree.kotbarsik96.ru/api
 tags:
-  - name: "user (1)"
-    description: Действия с пользователями
-  - name: "catalog (2)"
-    description: 'Действия с каталогом: товары, доступные виды сортировки товаров, пользовательские отзывы'
-  - name: "product_rating (3)"
-    description: 'Рейтинг товаров'
-  - name: "product_cart (4)"
-    description: 'Корзина товаров текущего пользователя'
-  - name: "product_favorites (5)"
-    description: 'Избранное товаров текущего пользователя'
-  - name: "product_order (6)"
-    description: 'Действия по просмотру, оформлению, отмене заказа, просмотр сделанных заказов' 
+  - name: user
+    description: "(1) Действия с пользователями"
+  - name: catalog
+    description: '(2) Действия с каталогом: товары, доступные виды сортировки товаров, пользовательские отзывы'
+  - name: product_rating
+    description: '(3) Рейтинг товаров'
+  - name: product_cart
+    description: '(4) Корзина товаров текущего пользователя'
+  - name: product_favorites
+    description: '(5) Избранное товаров текущего пользователя'
+  - name: product_order
+    description: '(6) Действия по просмотру, оформлению, отмене заказа, просмотр сделанных заказов' 
   - name: test
     description: "Тестовые методы, доступные только в режиме разработки"
 paths:
+  /sanctum/csrf-cookie:
+    get:
+      tags:
+        - user
+      summary: "Получить токен csrf"
+      description: "CSRF"
+      operationId: "csrf"
+      responses:
+        "200":
+          description: "Куки с CSRF-токеном"
   /signup:
     post:
       tags:
